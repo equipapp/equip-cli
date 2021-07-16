@@ -24,13 +24,14 @@ const progress = (done, total) => {
 };
 
 const formatStationInfo = (info) => {
-  const ip = chalk.green(info.ip.toString());
-  const vpn = chalk.green(info.vpn?.ip.toString());
+  const ip = chalk.green(info.ip);
+  const uuid = chalk.green(info.uuid);
+  const vpn = chalk.green(info.vpn?.ip);
   const vpnkey = chalk.gray(info.vpn?.publicKey?.trimEnd?.());
   const pubkey = chalk.gray(info.publicKey?.trimEnd?.());
   return [
     "",
-    chalk.cyan(`Found a station at ${ip}, VPN address is ${vpn}`),
+    chalk.cyan(`Found station ${uuid} at ${ip}, VPN address is ${vpn}`),
     chalk.cyan(`VPN Public Key: ${vpnkey}`),
     chalk.cyan(`Public Key: ${pubkey}`),
     "",
