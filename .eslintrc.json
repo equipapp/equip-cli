@@ -1,0 +1,25 @@
+{
+  "env": {
+    "browser": true,
+    "es2021": true,
+    "node": true,
+    "meteor": true
+  },
+  "globals": {
+    "google": true,
+    "cordova": true,
+    "StatusBar": true,
+    "smsreader": true,
+    "intercom": true
+  },
+  "extends": "eslint:recommended",
+  "plugins": [],
+  "parserOptions": {
+    "ecmaVersion": 12,
+    "sourceType": "module"
+  },
+  "rules": {
+    "no-unused-vars": [2, { "args": "after-used", "argsIgnorePattern": "^_" }],
+    "no-prototype-builtins": "off"
+  }
+}

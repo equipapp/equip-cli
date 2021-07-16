@@ -1,0 +1,29 @@
+{
+  "name": "equip-cli",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint:check": "prettier --check . && eslint .",
+    "lint:fix": "prettier --write ."
+  },
+  "bin": {
+    "equip": "./index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "chalk": "^4.1.1",
+    "get-ip-range": "^4.0.1",
+    "log-update": "^4.0.0",
+    "node-fetch": "^2.6.1",
+    "pretty-ms": "^7.0.1",
+    "yargs": "^17.0.1"
+  },
+  "devDependencies": {
+    "eslint": "^7.30.0",
+    "prettier": "^2.3.2"
+  }
+}
