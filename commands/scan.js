@@ -4,23 +4,21 @@ const chalk = require("chalk");
 const logUpdate = require("log-update");
 const prettyMs = require("pretty-ms");
 
-const getPercentage = (ratio) => {
-  const leftValue = Math.floor(ratio * 100);
-  const left = leftValue.toString().padStart(3, " ");
-  const right = Math.round(ratio * 1000 - leftValue * 10);
-  return `${left}.${right}`;
-};
+const getPercentage = (ratio) =>
+  Math.floor(ratio * 100)
+    .toString()
+    .padStart(3, " ");
 
 const progress = (done, total) => {
   const { columns } = process.stdout;
   const percent = getPercentage(done / total);
-  const barLength = columns - 29;
+  const barLength = columns - 16;
   const doneLength = Math.round((done / total) * barLength);
   const remainsLength = barLength - doneLength;
-  const doneBar = chalk.green("█").repeat(doneLength);
-  const remainsBar = chalk.gray("─").repeat(remainsLength);
-  const bar = `|${doneBar}${remainsBar}|`;
-  return chalk.yellow(`Progress: ${bar} ${percent}% Complete`);
+  const doneBar = chalk.green("#").repeat(doneLength);
+  const remainsBar = chalk.gray(".").repeat(remainsLength);
+  const bar = `[${doneBar}${remainsBar}]`;
+  return chalk.green(`Progress ${percent}% ${bar}`);
 };
 
 const formatStationInfo = (info) => {
