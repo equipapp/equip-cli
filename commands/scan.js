@@ -11,14 +11,15 @@ const getPercentage = (ratio) =>
 
 const progress = (done, total) => {
   const { columns } = process.stdout;
-  const percent = getPercentage(done / total);
-  const barLength = columns - 16;
+  const percentage = getPercentage(done / total);
+  const progress = `[${chalk.green(percentage + "%")}]`;
+  const barLength = columns - 19;
   const doneLength = Math.round((done / total) * barLength);
   const remainsLength = barLength - doneLength;
   const doneBar = chalk.green("#").repeat(doneLength);
   const remainsBar = chalk.gray(".").repeat(remainsLength);
   const bar = `[${doneBar}${remainsBar}]`;
-  return chalk.green(`Progress ${percent}% ${bar}`);
+  return chalk.cyan(`Progress: ${progress} ${bar}`);
 };
 
 const formatStationInfo = (info) => {
@@ -29,7 +30,7 @@ const formatStationInfo = (info) => {
   const pubkey = chalk.gray(info.publicKey?.trimEnd?.());
   return [
     "",
-    chalk.cyan(`Found station ${uuid} at ${ip}, VPN address is ${vpn}`),
+    chalk.cyan(`Found station ${uuid} at ${vpn} -> ${ip}`),
     chalk.cyan(`VPN Public Key: ${vpnkey}`),
     chalk.cyan(`Public Key: ${pubkey}`),
     "",
@@ -46,11 +47,7 @@ const template = (done, current, total, found) => {
     .join("\n");
 };
 
-const scan = async (range, timeout) => {
-  console.log(chalk.green(`Scanning ${range} for Equip stations`));
-  const ips = getIPRange(range);
-  const { length } = ips;
-  console.log(chalk.green(`There are a total of ${length} IPs in this range`));
+const printETA = (length, timeout) => {
   const ETA = prettyMs(length * timeout);
   if (length * timeout <= 2 * 60 * 1000) {
     console.log(chalk.green(`This is going to take about ${ETA} to finish 🚀`));
@@ -64,6 +61,14 @@ const scan = async (range, timeout) => {
       chalk.red(`Consider adjusting either the timeout or the IP range!`)
     );
   }
+};
+
+const scan = async (range, timeout) => {
+  console.log(chalk.green(`Scanning ${range} for Equip stations`));
+  const ips = getIPRange(range);
+  const { length } = ips;
+  console.log(chalk.green(`There are a total of ${length} IPs in this range`));
+  printETA(length, timeout);
   const found = [];
   let done = 0;
   for (const ip of ips) {
