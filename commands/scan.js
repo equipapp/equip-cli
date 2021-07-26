@@ -65,14 +65,22 @@ const printETA = (length, timeout) => {
 
 const scan = async (range, timeout) => {
   console.log(chalk.green(`Scanning ${range} for Equip stations`));
-  const ips = getIPRange(range);
+  const ips = range.match(/(?:\d+\.){3}\d+/) ? [range] : getIPRange(range);
   const { length } = ips;
   console.log(chalk.green(`There are a total of ${length} IPs in this range`));
   printETA(length, timeout);
   const found = [];
   let done = 0;
+  let start;
+  let current;
+  const interval = setInterval(() => {
+    const passed = new Date().valueOf() - start;
+    const progress = done + Math.min(1, passed / timeout);
+    logUpdate(template(progress, current, length, found));
+  }, 100);
   for (const ip of ips) {
-    logUpdate(template(done, ip, length, found));
+    current = ip;
+    start = new Date().valueOf();
     const addr = `http://${ip}:6444`;
     const resp = await fetch(addr, { timeout }).catch(() => {});
     const data = await resp?.json().catch(() => {});
@@ -81,6 +89,7 @@ const scan = async (range, timeout) => {
     }
     done++;
   }
+  clearInterval(interval);
   logUpdate(template(done, null, ips.length, found));
 };
 
