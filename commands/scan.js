@@ -65,7 +65,7 @@ const printETA = (length, timeout) => {
 
 const scan = async (range, timeout) => {
   console.log(chalk.green(`Scanning ${range} for Equip stations`));
-  const ips = range.match(/(?:\d+\.){3}\d+/) ? [range] : getIPRange(range);
+  const ips = range.match(/^(?:\d+\.){3}\d+$/) ? [range] : getIPRange(range);
   const { length } = ips;
   console.log(chalk.green(`There are a total of ${length} IPs in this range`));
   printETA(length, timeout);
