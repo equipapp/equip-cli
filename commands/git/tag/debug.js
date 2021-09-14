@@ -1,5 +1,5 @@
 const { getTags, tag } = require("../../../lib/git");
-const { pushChanges, pushTags } = require("../../../lib/git");
+const { pushTags } = require("../../../lib/git");
 const { tagChangeLog } = require("../../../lib/changes");
 const { MultiSelect } = require("enquirer");
 const semver = require("semver");
@@ -20,6 +20,7 @@ exports.handler = async (argv) => {
     choices: ["App", "Server"],
   });
   const targets = await prompt.run();
+  const tags = [];
   for (const target of targets) {
     if (target === "App") {
       const current = getTags()
@@ -30,8 +31,7 @@ exports.handler = async (argv) => {
         .pop();
       const next = semver.inc(current, argv.type);
       const name = `app-v${next}-debug`;
-      tagChangeLog(name);
-      tag(name);
+      tags.push(name);
     } else if (target === "Server") {
       const current = getTags()
         .filter((tag) => tag.startsWith("server"))
@@ -41,10 +41,10 @@ exports.handler = async (argv) => {
         .pop();
       const next = semver.inc(current, argv.type);
       const name = `server-v${next}-debug`;
-      tagChangeLog(name);
-      tag(name);
+      tags.push(name);
     }
   }
-  pushChanges();
+  tagChangeLog(...tags);
+  tags.forEach(tag);
   pushTags();
 };
