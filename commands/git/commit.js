@@ -3,6 +3,7 @@ const { getBranch, makeCommit } = require("../../lib/git");
 const { pushChanges, addPath } = require("../../lib/git");
 const { Input, Select } = require("enquirer");
 const { addToChangeLog } = require("../../lib/changes");
+const { makeChangeLogEntry } = require("../../lib/changes");
 
 // TODO:
 
@@ -41,9 +42,9 @@ exports.handler = async (argv) => {
   });
   const description = await descPrompt.run();
 
-  const append = argv.change
+  const entry = argv.change
     ? await addToChangeLog(type, message, description)
-    : `- **[${type}]** ${message}: ${description}\n\n`;
+    : makeChangeLogEntry(type, message, description);
 
   addPath(process.cwd());
   makeCommit(`[${type}] ${message}`);
@@ -61,7 +62,7 @@ exports.handler = async (argv) => {
     updatePR({
       ...options,
       pull_number: pr.number,
-      body: pr.body + append + "\n\n",
+      body: pr.body + entry + "\n\n",
     });
   } else {
     const issues = branch.split("/").pop().split("-");
@@ -69,7 +70,7 @@ exports.handler = async (argv) => {
     makePR({
       ...options,
       title: `Merge ${branch}`,
-      body: fixes + "\n\n" + TEMPLATE + append + "\n\n",
+      body: fixes + "\n\n" + TEMPLATE + entry + "\n\n",
       head: branch,
       base: "develop",
     });
