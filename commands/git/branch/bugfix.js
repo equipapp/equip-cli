@@ -10,6 +10,6 @@ exports.builder = {
 exports.handler = async (argv) => {
   const issues = await selectIssues({ owner: "equipapp", repo: "equip" });
   const id = slug(argv.name);
-  const branch = `bugfix-${id}/${issues.join("-")}`;
+  const branch = `bugfix:${id}/${issues.join("-")}`;
   makeBranch(branch);
 };
