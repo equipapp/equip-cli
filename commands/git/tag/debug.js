@@ -44,7 +44,7 @@ exports.handler = async (argv) => {
       tags.push(name);
     }
   }
-  tagChangeLog(...tags);
+  await tagChangeLog(...tags);
   tags.forEach(tag);
   pushTags();
 };
