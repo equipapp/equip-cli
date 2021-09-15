@@ -65,7 +65,11 @@ exports.handler = async (argv) => {
       body: pr.body + entry + "\n\n",
     });
   } else {
-    const issues = branch.split("/").pop().split("-");
+    const issues = branch
+      .split("/")
+      .pop()
+      .split("-")
+      .map((issue) => `#${issue}`);
     const fixes = `Fixes ${issues.join(", ")}`;
     makePR({
       ...options,

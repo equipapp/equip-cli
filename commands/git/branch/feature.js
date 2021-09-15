@@ -13,8 +13,5 @@ exports.handler = async (argv) => {
   const branch = `feature-${id}/${issues.join("-")}`;
   makeBranch(branch);
   const options = { owner: "equipapp", repo: "equip" };
-  assignIssues(
-    options,
-    issues.map((issue) => issue.slice(1))
-  );
+  assignIssues(options, issues);
 };
