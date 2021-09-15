@@ -1,5 +1,5 @@
 const slug = require("slug");
-const { selectIssues } = require("../../../lib/github");
+const { selectIssues, assignIssues } = require("../../../lib/github");
 const { makeBranch } = require("../../../lib/git");
 
 exports.command = "feature <name>";
@@ -12,4 +12,9 @@ exports.handler = async (argv) => {
   const id = slug(argv.name);
   const branch = `feature-${id}/${issues.join("-")}`;
   makeBranch(branch);
+  const options = { owner: "equipapp", repo: "equip" };
+  assignIssues(
+    options,
+    issues.map((issue) => issue.slice(1))
+  );
 };
