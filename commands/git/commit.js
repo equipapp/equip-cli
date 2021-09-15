@@ -65,12 +65,12 @@ exports.handler = async (argv) => {
       body: pr.body + entry + "\n\n",
     });
   } else {
-    const issues = branch
+    const fixes = branch
       .split("/")
       .pop()
       .split("-")
-      .map((issue) => `#${issue}`);
-    const fixes = `Fixes ${issues.join(", ")}`;
+      .map((issue) => `Fixes #${issue}`)
+      .join("\n");
     makePR({
       ...options,
       title: `Merge ${branch}`,
