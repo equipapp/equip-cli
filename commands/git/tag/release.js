@@ -36,6 +36,7 @@ exports.handler = async (argv) => {
       }
       const src = path.join(getRoot(), "src");
       const pkgPath = path.join(src, "package.json");
+      const pkgLockPath = path.join(src, "package-lock.json");
       const configPath = path.join(src, "mobile-config.js");
       const lastTaggedVersion = getTags()
         .filter((tag) => tag.startsWith("app"))
@@ -60,6 +61,11 @@ exports.handler = async (argv) => {
         fs.writeFileSync(
           pkgPath,
           JSON.stringify({ ...pkg, version: next }, null, 2)
+        );
+        const pkgLock = require(pkgLockPath);
+        fs.writeFileSync(
+          pkgLockPath,
+          JSON.stringify({ ...pkgLock, version: next }, null, 2)
         );
         const config = fs.readFileSync(configPath).toString();
         const versionRe = new RegExp(`version: "${pkg.version}"`);
