@@ -65,6 +65,11 @@ exports.handler = async (argv) => {
       body: pr.body + entry + "\n\n",
     });
   } else {
+    const titlePrompt = new Input({
+      message: "Enter a title for the pull request",
+      initial: "",
+    });
+    const title = await titlePrompt.run();
     const fixes = branch
       .split("/")
       .pop()
@@ -73,7 +78,7 @@ exports.handler = async (argv) => {
       .join("\n");
     makePR({
       ...options,
-      title: `Merge ${branch}`,
+      title,
       body: fixes + "\n\n" + TEMPLATE + entry + "\n\n",
       head: branch,
       base: "develop",
