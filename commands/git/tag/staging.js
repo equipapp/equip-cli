@@ -4,8 +4,8 @@ const { tagChangeLog } = require("../../../lib/changes");
 const { MultiSelect } = require("enquirer");
 const semver = require("semver");
 
-exports.command = "debug [type]";
-exports.desc = "Creates a new debug tag";
+exports.command = "staging [type]";
+exports.desc = "Creates a new staging tag";
 exports.builder = {
   type: {
     describe: "Version increment type",
@@ -25,22 +25,22 @@ exports.handler = async (argv) => {
     if (target === "App") {
       const current = getTags()
         .filter((tag) => tag.startsWith("app"))
-        .filter((tag) => tag.endsWith("debug"))
+        .filter((tag) => tag.endsWith("staging"))
         .map((tag) => tag.slice(5, -6))
         .sort((a, b) => (semver.gt(a, b) ? 1 : -1))
         .pop();
       const next = semver.inc(current, argv.type);
-      const name = `app-v${next}-debug`;
+      const name = `app-v${next}-staging`;
       tags.push(name);
     } else if (target === "Server") {
       const current = getTags()
         .filter((tag) => tag.startsWith("server"))
-        .filter((tag) => tag.endsWith("debug"))
+        .filter((tag) => tag.endsWith("staging"))
         .map((tag) => tag.slice(8, -6))
         .sort((a, b) => (semver.gt(a, b) ? 1 : -1))
         .pop();
       const next = semver.inc(current, argv.type);
-      const name = `server-v${next}-debug`;
+      const name = `server-v${next}-staging`;
       tags.push(name);
     }
   }

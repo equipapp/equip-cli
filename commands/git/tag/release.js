@@ -11,7 +11,7 @@ const path = require("path");
 const fs = require("fs");
 
 exports.command = "release [type]";
-exports.desc = "Creates a new debug tag";
+exports.desc = "Creates a new release tag";
 exports.builder = {
   type: {
     describe: "Version increment type",
