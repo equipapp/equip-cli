@@ -101,7 +101,7 @@ exports.handler = (argv) => {
     return error("The previous version was not found in the CHANGES.md file.");
   }
 
-  const filePath = path.join(outputPath, `${baseVersion}.txt`);
+  const filePath = path.join(outputPath, `changes.txt`);
   fs.writeFileSync(
     filePath,
     changesFile
