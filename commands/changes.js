@@ -31,7 +31,7 @@ exports.builder = {
   },
   env: {
     describe:
-      "Which env should be considered (e.g. 'env', 'staging', 'release').",
+      "Which env should be considered (e.g. 'dev', 'staging', 'release').",
     type: "string",
     default: "dev",
   },
