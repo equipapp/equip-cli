@@ -51,61 +51,89 @@ exports.handler = (argv) => {
   const outputPath = path.resolve(getRoot(), argv.output);
   const environment = argv.env;
 
-  const previousVersion = semver.parse(baseVersion);
-  if (versionType === "patch" && previousVersion.patch > 0) {
-    previousVersion.patch -= 1;
-  } else if (previousVersion.minor > 0) {
-    previousVersion.minor -= 1;
-    previousVersion.patch = "x";
-  } else {
-    return error("Major look up is not yet supported.");
-  }
-
-  info(
-    `Trying to find version ${previousVersion.format()} for ${environment}.`
-  );
-
   const changesFile = fs
     .readFileSync(path.join(getRoot(), "CHANGES.md"))
     .toString()
     .split("\n")
     .map((l) => l.trim());
 
-  const currentVersionHeaderIndex = changesFile.findIndex((l) =>
+  const baseVersionIndex = changesFile.findIndex((l) =>
     l.includes(`app-v${baseVersion}`)
   );
 
-  if (currentVersionHeaderIndex === -1) {
-    return error(
-      `Version ${baseVersion} was not found in the CHANGES.md file.`
-    );
+  if (baseVersionIndex === -1) {
+    return error(`Base version ${baseVersion} not found in CHANGES.md.`);
   }
 
-  const pattern = (env) => new RegExp(`## app-v(?<version>.*)-${env}`, "g");
-  const match = fs
-    .readFileSync("CHANGES.md")
-    .toString()
-    .matchAll(pattern(environment));
-  const versions = Array.from(match).map((match) => match.groups.version);
+  const previousVersion = semver.parse(baseVersion);
 
-  const previousMaxMinor = semver.maxSatisfying(
-    versions,
-    previousVersion.format()
-  );
+  let previousVersionIndex = -1;
 
-  const previousVersionHeaderIndex = changesFile.findIndex((l) =>
-    l.includes(`app-v${previousMaxMinor}`)
-  );
+  if (versionType === "patch") {
+    if (previousVersion.patch > 0) {
+      previousVersion.patch -= 1;
+    }
 
-  if (previousVersionHeaderIndex === -1) {
-    return error("The previous version was not found in the CHANGES.md file.");
+    while (previousVersion.patch > 0) {
+      info(
+        `Trying to find version ${previousVersion.format()} for ${environment}.`
+      );
+
+      const versionHeaderIndex = changesFile.findIndex((l) =>
+        l.includes(`app-v${previousVersion.format()}`)
+      );
+
+      if (versionHeaderIndex >= 0) {
+        previousVersionIndex = versionHeaderIndex;
+        info(`Found version ${previousVersion.format()}.`);
+        break;
+      } else {
+        previousVersion.patch -= 1;
+      }
+    }
+
+    if (previousVersionIndex === -1 && previousVersion.minor > 0) {
+      previousVersion.minor -= 1;
+      previousVersion.patch = "x";
+    }
+  } else if (versionType === "minor") {
+    previousVersion.minor -= 1;
+    previousVersion.patch = "x";
+  } else {
+    return error("Major look up is not yet supported.");
+  }
+
+  if (previousVersion.patch === "x") {
+    const pattern = (env) => new RegExp(`## app-v(?<version>.*)-${env}`, "g");
+    const match = fs
+      .readFileSync("CHANGES.md")
+      .toString()
+      .matchAll(pattern(environment));
+    const versions = Array.from(match).map((match) => match.groups.version);
+
+    const previousMaxMinor = semver.maxSatisfying(
+      versions,
+      previousVersion.format()
+    );
+
+    if (!previousMaxMinor) {
+      return error(
+        `Previous minor version ${previousMaxMinor} was not found in the CHANGES.md file.`
+      );
+    }
+
+    info(`Found minor version ${previousMaxMinor}.`);
+
+    previousVersionIndex = changesFile.findIndex((l) =>
+      l.includes(`app-v${previousMaxMinor}`)
+    );
   }
 
   const filePath = path.join(outputPath, `changes.txt`);
   fs.writeFileSync(
     filePath,
     changesFile
-      .slice(currentVersionHeaderIndex, previousVersionHeaderIndex)
+      .slice(baseVersionIndex, previousVersionIndex)
       .filter((l) => !l.startsWith("## "))
       .join("\n")
       .trim()
