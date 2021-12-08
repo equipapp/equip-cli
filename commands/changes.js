@@ -80,7 +80,7 @@ exports.handler = (argv) => {
       );
 
       const versionHeaderIndex = changesFile.findIndex((l) =>
-        l.includes(`app-v${previousVersion.format()}`)
+        l.includes(`app-v${previousVersion.format()}-${environment}`)
       );
 
       if (versionHeaderIndex >= 0) {
