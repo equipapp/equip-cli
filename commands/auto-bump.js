@@ -1,6 +1,7 @@
 const path = require("path");
 const fs = require("fs");
 const semver = require("semver");
+const { Confirm } = require("enquirer");
 const { error, info } = require("../lib/messages");
 const {
   getRoot,
@@ -23,6 +24,22 @@ const shouldSkip = (baseVersion, env, platform) => {
   return baseVersion === lastServerVersion;
 };
 
+const keypress = async () => {
+  process.stdin.setRawMode(true);
+  process.stdin.resume();
+  return new Promise((resolve) =>
+    process.stdin.once("data", (data) => {
+      const byteArray = [...data];
+      if (byteArray.length > 0 && byteArray[0] === 3) {
+        console.log("^C");
+        process.exit(1);
+      }
+      process.stdin.setRawMode(false);
+      resolve();
+    })
+  );
+};
+
 exports.command = "auto-bump";
 exports.desc =
   "Auto bump all required files and create tags if the version specified on the provided versions file is higher than the latest tag.";
@@ -35,6 +52,11 @@ exports.builder = {
     describe: "The environment to be considered.",
     type: "string",
     default: "staging",
+  },
+  silent: {
+    describe: "Skip all prompts.",
+    type: "boolean",
+    default: false,
   },
 };
 exports.handler = async (argv) => {
@@ -132,6 +154,8 @@ exports.handler = async (argv) => {
     const configPath = path.join(getRoot(), "src/mobile-config.js");
     const spinnerConfig = ora(`Changing version on ${configPath}`).start();
     try {
+      const pkgPath = path.join(getRoot(), "src/package.json");
+      const pkg = require(pkgPath);
       const config = fs.readFileSync(configPath).toString();
       const versionRe = new RegExp(`version: "${pkg.version}"`);
       const patched = config.replace(versionRe, `version: "${versions.app}"`);
@@ -156,17 +180,43 @@ exports.handler = async (argv) => {
   }
 
   if (newTags.length) {
-    const spinner = ora(`Creating commit and tags...`).start();
     try {
       addPath(changesPath);
-      makeCommit("[auto] Bump version");
-      pushChanges("develop");
 
+      if (!argv.silent) {
+        info("Files changes. Check them and press any key to continue...");
+        await keypress();
+      }
+
+      makeCommit("[auto] Bump version");
       newTags.forEach(tag);
-      pushTags();
-      spinner.succeed();
+
+      if (argv.silent) {
+        const spinner = ora(`Pushing...`).start();
+        pushChanges("develop");
+        pushTags();
+        spinner.succeed();
+      } else {
+        const prompt = new Confirm({
+          name: "question",
+          message: "Commit and tags are created. Can I push?",
+          initial: true,
+        });
+
+        const answer = await prompt.run();
+
+        if (answer) {
+          const spinner = ora(`Pushing...`).start();
+          pushChanges("develop");
+          pushTags();
+          spinner.succeed();
+        } else {
+          info(
+            "The commit and tags won't be reverted. Check manually and push later."
+          );
+        }
+      }
     } catch (e) {
-      spinner.fail();
       error(e.message);
     }
   }
