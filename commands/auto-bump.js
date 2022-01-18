@@ -200,12 +200,10 @@ exports.handler = async (argv) => {
       }
 
       makeCommit(commitMessage);
-      newTags.forEach(tag);
 
       if (argv.silent) {
         const spinner = ora(`Pushing...`).start();
         pushChanges("develop");
-        pushTags();
         spinner.succeed();
       } else {
         const prompt = new Confirm({
@@ -219,7 +217,6 @@ exports.handler = async (argv) => {
         if (answer) {
           const spinner = ora(`Pushing...`).start();
           pushChanges("develop");
-          pushTags();
           spinner.succeed();
         } else {
           info(
@@ -227,6 +224,9 @@ exports.handler = async (argv) => {
           );
         }
       }
+
+      newTags.forEach(tag);
+      pushTags();
     } catch (e) {
       error(e.message);
     }
