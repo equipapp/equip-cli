@@ -107,6 +107,7 @@ exports.handler = async (argv) => {
         const newChangesFile = `## ${newTag}\n\n`.concat(changesFile);
         fs.writeFileSync(changesPath, newChangesFile);
         commitMessage += `server ${versions.server}`;
+        fs.writeFileSync(path.join(getRoot(), "server-version"), newTag);
         spinner.succeed();
       } catch (e) {
         spinner.fail();
@@ -197,6 +198,7 @@ exports.handler = async (argv) => {
         const newChangesFile = `## ${newTag}\n\n`.concat(changesFile);
         fs.writeFileSync(changesPath, newChangesFile);
         commitMessage += ` and app ${versions.app}`;
+        fs.writeFileSync(path.join(getRoot(), "app-version"), newTag);
         spinner.succeed();
       } catch (e) {
         spinner.fail();
