@@ -14,14 +14,16 @@ const {
 } = require("../lib/git");
 
 const shouldSkip = (baseVersion, env, platform) => {
-  const lastServerVersion = getTags()
+  const lastVersion = getTags()
     .filter((tag) => tag.startsWith(platform))
     .filter((tag) => tag.endsWith(env))
     .map((tag) => tag.split("-")[1].slice(1))
     .sort((a, b) => (semver.gt(a, b) ? 1 : -1))
     .pop();
 
-  return baseVersion === lastServerVersion;
+  info(`Last tagged ${platform} version is ${lastVersion}.`);
+
+  return baseVersion === lastVersion || semver.lt(baseVersion, lastVersion);
 };
 
 const keypress = async () => {
@@ -72,6 +74,7 @@ exports.handler = async (argv) => {
 
   let serverSkipped = false;
   let appSkipped = false;
+  let commitMessage = "[auto] Bumping version to ";
 
   const newTags = [];
   const filePath = path.join(getRoot(), argv.file);
@@ -80,11 +83,15 @@ exports.handler = async (argv) => {
 
   const versions = require(filePath);
 
+  info(`App version: ${versions.app}; Server version: ${versions.server}`);
+
   serverSkipped = shouldSkip(versions.server, argv.env, "server");
   appSkipped = shouldSkip(versions.app, argv.env, "app");
 
   if (serverSkipped) {
-    info("Server version didn't change. Skipping...");
+    info(
+      "App version didn't change or latest version is greather than desired version. Skipping..."
+    );
   } else {
     const newTag = `server-v${versions.server}-${argv.env}`;
     newTags.push(newTag);
@@ -94,6 +101,7 @@ exports.handler = async (argv) => {
       const changesFile = fs.readFileSync(changesPath).toString();
       const newChangesFile = `## ${newTag}\n\n`.concat(changesFile);
       fs.writeFileSync(changesPath, newChangesFile);
+      commitMessage += `server ${versions.server}`;
       spinner.succeed();
     } catch (e) {
       spinner.fail();
@@ -102,7 +110,9 @@ exports.handler = async (argv) => {
   }
 
   if (appSkipped) {
-    info("App version didn't change. Skipping...");
+    info(
+      "App version didn't change or latest version is greather than desired version. Skipping..."
+    );
   } else {
     const newTag = `app-v${versions.app}-${argv.env}`;
     newTags.push(newTag);
@@ -172,6 +182,7 @@ exports.handler = async (argv) => {
       const changesFile = fs.readFileSync(changesPath).toString();
       const newChangesFile = `## ${newTag}\n\n`.concat(changesFile);
       fs.writeFileSync(changesPath, newChangesFile);
+      commitMessage += ` and app ${versions.app}`;
       spinner.succeed();
     } catch (e) {
       spinner.fail();
@@ -188,7 +199,7 @@ exports.handler = async (argv) => {
         await keypress();
       }
 
-      makeCommit("[auto] Bump version");
+      makeCommit(commitMessage);
       newTags.forEach(tag);
 
       if (argv.silent) {
