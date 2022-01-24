@@ -14,14 +14,16 @@ const {
 } = require("../lib/git");
 
 const shouldSkip = (baseVersion, env, platform) => {
-  const lastServerVersion = getTags()
+  const lastVersion = getTags()
     .filter((tag) => tag.startsWith(platform))
     .filter((tag) => tag.endsWith(env))
     .map((tag) => tag.split("-")[1].slice(1))
     .sort((a, b) => (semver.gt(a, b) ? 1 : -1))
     .pop();
 
-  return baseVersion === lastServerVersion;
+  info(`Last tagged ${platform} version is ${lastVersion}.`);
+
+  return baseVersion === lastVersion || semver.lt(baseVersion, lastVersion);
 };
 
 const keypress = async () => {
@@ -58,6 +60,10 @@ exports.builder = {
     type: "boolean",
     default: false,
   },
+  platform: {
+    describe: "App or server. Leave empty for both.",
+    type: "string",
+  },
 };
 exports.handler = async (argv) => {
   if (!argv.file) {
@@ -70,8 +76,7 @@ exports.handler = async (argv) => {
 
   const { default: ora } = await import("ora");
 
-  let serverSkipped = false;
-  let appSkipped = false;
+  let commitMessage = "[auto] Bumping version to ";
 
   const newTags = [];
   const filePath = path.join(getRoot(), argv.file);
@@ -80,102 +85,125 @@ exports.handler = async (argv) => {
 
   const versions = require(filePath);
 
-  serverSkipped = shouldSkip(versions.server, argv.env, "server");
-  appSkipped = shouldSkip(versions.app, argv.env, "app");
+  if (!argv.platform || argv.platform === "server") {
+    info(`Server version: ${versions.server}`);
 
-  if (serverSkipped) {
-    info("Server version didn't change. Skipping...");
-  } else {
-    const newTag = `server-v${versions.server}-${argv.env}`;
-    newTags.push(newTag);
+    const serverSkipped = shouldSkip(versions.server, argv.env, "server");
 
-    const spinner = ora(`Writing tag ${newTag} to changelog...`).start();
-    try {
-      const changesFile = fs.readFileSync(changesPath).toString();
-      const newChangesFile = `## ${newTag}\n\n`.concat(changesFile);
-      fs.writeFileSync(changesPath, newChangesFile);
-      spinner.succeed();
-    } catch (e) {
-      spinner.fail();
-      error(e.message);
+    if (serverSkipped) {
+      info(
+        "Server version didn't change or latest version is greather than desired version. Skipping..."
+      );
+      if (argv.platform === "server") {
+        process.exit(1);
+      }
+    } else {
+      const newTag = `server-v${versions.server}-${argv.env}`;
+      newTags.push(newTag);
+
+      const spinner = ora(`Writing tag ${newTag} to changelog...`).start();
+      try {
+        const changesFile = fs.readFileSync(changesPath).toString();
+        const newChangesFile = `## ${newTag}\n\n`.concat(changesFile);
+        fs.writeFileSync(changesPath, newChangesFile);
+        commitMessage += `server ${versions.server}`;
+        fs.writeFileSync(path.join(getRoot(), "server-version"), newTag);
+        spinner.succeed();
+      } catch (e) {
+        spinner.fail();
+        error(e.message);
+      }
     }
   }
 
-  if (appSkipped) {
-    info("App version didn't change. Skipping...");
-  } else {
-    const newTag = `app-v${versions.app}-${argv.env}`;
-    newTags.push(newTag);
+  if (!argv.platform || argv.platform === "app") {
+    info(`App version: ${versions.app}`);
 
-    const pkgPath = path.join(getRoot(), "src/package.json");
-    const spinnerPkg = ora(`Changing version on ${pkgPath}`).start();
-    try {
-      const pkg = require(pkgPath);
-      fs.writeFileSync(
-        pkgPath,
-        JSON.stringify(
-          {
-            ...pkg,
-            version: versions.app,
-          },
-          null,
-          2
-        )
+    const appSkipped = shouldSkip(versions.app, argv.env, "app");
+
+    if (appSkipped) {
+      info(
+        "App version didn't change or latest version is greather than desired version. Skipping..."
       );
-      addPath(pkgPath);
-      spinnerPkg.succeed();
-    } catch (e) {
-      spinnerPkg.fail();
-      error(e.message);
-    }
+      if (argv.platform === "app") {
+        process.exit(1);
+      }
+    } else {
+      const newTag = `app-v${versions.app}-${argv.env}`;
+      newTags.push(newTag);
 
-    const pkgLockPath = path.join(getRoot(), "src/package-lock.json");
-    const spinnerPkgLock = ora(`Changing version on ${pkgLockPath}`).start();
-    try {
-      const pkgLock = require(pkgLockPath);
-      fs.writeFileSync(
-        pkgLockPath,
-        JSON.stringify(
-          {
-            ...pkgLock,
-            version: versions.app,
-          },
-          null,
-          2
-        )
-      );
-      addPath(pkgLockPath);
-      spinnerPkgLock.succeed();
-    } catch (e) {
-      spinnerPkgLock.fail();
-      error(e.message);
-    }
-
-    const configPath = path.join(getRoot(), "src/mobile-config.js");
-    const spinnerConfig = ora(`Changing version on ${configPath}`).start();
-    try {
       const pkgPath = path.join(getRoot(), "src/package.json");
-      const pkg = require(pkgPath);
-      const config = fs.readFileSync(configPath).toString();
-      const versionRe = new RegExp(`version: "${pkg.version}"`);
-      const patched = config.replace(versionRe, `version: "${versions.app}"`);
-      fs.writeFileSync(configPath, patched);
-      addPath(configPath);
-      spinnerConfig.succeed();
-    } catch (e) {
-      spinnerConfig.fail();
-      error(e.message);
-    }
+      const spinnerPkg = ora(`Changing version on ${pkgPath}`).start();
+      try {
+        const pkg = require(pkgPath);
+        fs.writeFileSync(
+          pkgPath,
+          JSON.stringify(
+            {
+              ...pkg,
+              version: versions.app,
+            },
+            null,
+            2
+          )
+        );
+        addPath(pkgPath);
+        spinnerPkg.succeed();
+      } catch (e) {
+        spinnerPkg.fail();
+        error(e.message);
+      }
 
-    const spinner = ora(`Writing tag ${newTag} to changelog...`).start();
-    try {
-      const changesFile = fs.readFileSync(changesPath).toString();
-      const newChangesFile = `## ${newTag}\n\n`.concat(changesFile);
-      fs.writeFileSync(changesPath, newChangesFile);
-      spinner.succeed();
-    } catch (e) {
-      spinner.fail();
-      error(e.message);
+      const pkgLockPath = path.join(getRoot(), "src/package-lock.json");
+      const spinnerPkgLock = ora(`Changing version on ${pkgLockPath}`).start();
+      try {
+        const pkgLock = require(pkgLockPath);
+        fs.writeFileSync(
+          pkgLockPath,
+          JSON.stringify(
+            {
+              ...pkgLock,
+              version: versions.app,
+            },
+            null,
+            2
+          )
+        );
+        addPath(pkgLockPath);
+        spinnerPkgLock.succeed();
+      } catch (e) {
+        spinnerPkgLock.fail();
+        error(e.message);
+      }
+
+      const configPath = path.join(getRoot(), "src/mobile-config.js");
+      const spinnerConfig = ora(`Changing version on ${configPath}`).start();
+      try {
+        const pkgPath = path.join(getRoot(), "src/package.json");
+        const pkg = require(pkgPath);
+        const config = fs.readFileSync(configPath).toString();
+        const versionRe = new RegExp(`version: "${pkg.version}"`);
+        const patched = config.replace(versionRe, `version: "${versions.app}"`);
+        fs.writeFileSync(configPath, patched);
+        addPath(configPath);
+        spinnerConfig.succeed();
+      } catch (e) {
+        spinnerConfig.fail();
+        error(e.message);
+      }
+
+      const spinner = ora(`Writing tag ${newTag} to changelog...`).start();
+      try {
+        const changesFile = fs.readFileSync(changesPath).toString();
+        const newChangesFile = `## ${newTag}\n\n`.concat(changesFile);
+        fs.writeFileSync(changesPath, newChangesFile);
+        commitMessage += ` and app ${versions.app}`;
+        fs.writeFileSync(path.join(getRoot(), "app-version"), newTag);
+        spinner.succeed();
+      } catch (e) {
+        spinner.fail();
+        error(e.message);
+      }
     }
   }
 
@@ -188,13 +216,11 @@ exports.handler = async (argv) => {
         await keypress();
       }
 
-      makeCommit("[auto] Bump version");
-      newTags.forEach(tag);
+      makeCommit(commitMessage);
 
       if (argv.silent) {
         const spinner = ora(`Pushing...`).start();
         pushChanges("develop");
-        pushTags();
         spinner.succeed();
       } else {
         const prompt = new Confirm({
@@ -208,7 +234,6 @@ exports.handler = async (argv) => {
         if (answer) {
           const spinner = ora(`Pushing...`).start();
           pushChanges("develop");
-          pushTags();
           spinner.succeed();
         } else {
           info(
@@ -216,6 +241,9 @@ exports.handler = async (argv) => {
           );
         }
       }
+
+      newTags.forEach(tag);
+      pushTags();
     } catch (e) {
       error(e.message);
     }
