@@ -11,6 +11,7 @@ const {
   makeCommit,
   pushChanges,
   pushTags,
+  checkout,
 } = require("../lib/git");
 
 const shouldSkip = (baseVersion, env, platform) => {
@@ -208,6 +209,7 @@ exports.handler = async (argv) => {
   }
 
   if (newTags.length) {
+    checkout("develop");
     try {
       addPath(changesPath);
 
