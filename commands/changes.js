@@ -25,7 +25,6 @@ exports.builder = {
   output: {
     describe: "The output file where the changes will be written to.",
     type: "string",
-    default: ".",
   },
 };
 exports.handler = (argv) => {
@@ -42,6 +41,10 @@ exports.handler = (argv) => {
 
   const changelog = commandResult.stdout.toString();
 
-  const filePath = path.join(output, `changes.txt`);
-  fs.writeFileSync(filePath, changelog);
+  if (output) {
+    const filePath = path.join(output, `changes.txt`);
+    fs.writeFileSync(filePath, changelog);
+  } else {
+    console.log(changelog);
+  }
 };
