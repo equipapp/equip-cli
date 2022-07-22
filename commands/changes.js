@@ -39,12 +39,17 @@ exports.handler = (argv) => {
 
   const commandResult = generateChangelog(previousTag, tag);
 
-  const changelog = commandResult.stdout.toString();
+  const changelog = commandResult.stdout.toString().split("\n");
+  const normalizedChangelog = changelog
+    .filter(
+      (line) => line.indexOf("Bump") === -1 && line.indexOf("[auto]") === -1
+    )
+    .join("\n");
 
   if (output) {
     const filePath = path.join(output, `changes.txt`);
-    fs.writeFileSync(filePath, changelog);
+    fs.writeFileSync(filePath, normalizedChangelog);
   } else {
-    console.log(changelog);
+    console.log(normalizedChangelog);
   }
 };
